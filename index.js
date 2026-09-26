@@ -6,8 +6,10 @@ require("dotenv").config();
 const app = express();
 
 app.use(cors());
+
 app.use(express.json());
 
+// Gmail Transporter
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -16,76 +18,91 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-app.get("/", (req, res) => {
-  res.send("Portfolio Mail API Running...");
+// Verify transporter on server start
+transporter.verify((error) => {
+  if (error) {
+    console.error("❌ Mail Error:", error);
+  } else {
+    console.log("✅ Mail Server Ready");
+  }
 });
 
+app.get("/", (req, res) => {
+  res.send("Portfolio Mail API Running 🚀");
+});
+
+// Contact Form API
 app.post("/send-mail", async (req, res) => {
   try {
-    const { name, phone, email, subject, message } = req.body;
+    const { name, phone, message } = req.body;
 
-    if (!name || !email || !subject || !message) {
+    if (!name || !phone || !message) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required.",
+        message: "Name, WhatsApp Number and Message are required.",
       });
     }
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: "jatinmehra8130@gmail.com",
-      replyTo: email,
-      subject: `Portfolio Contact: ${subject}`,
+      from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
+      to: "jatintechsunset@gmail.com",
+      subject: `New Portfolio Contact from ${name}`,
       html: `
-        <div style="font-family: Arial, sans-serif; line-height:1.7">
-          <h2 style="color:#FF014F;">New Portfolio Contact</h2>
+        <div style="font-family:Arial,sans-serif;background:#f5f5f5;padding:30px;">
+          <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
 
-          <table cellpadding="8">
-            <tr>
-              <td><strong>Name</strong></td>
-              <td>${name}</td>
-            </tr>
-            <tr>
-              <td><strong>Phone</strong></td>
-              <td>${phone}</td>
-            </tr>
-            <tr>
-              <td><strong>Email</strong></td>
-              <td>${email}</td>
-            </tr>
-            <tr>
-              <td><strong>Subject</strong></td>
-              <td>${subject}</td>
-            </tr>
-          </table>
+            <div style="background:#FF014F;color:white;padding:22px;text-align:center;">
+              <h2 style="margin:0;">New Portfolio Inquiry</h2>
+            </div>
 
-          <h3>Message</h3>
+            <div style="padding:25px;">
+              <table style="width:100%;border-collapse:collapse;">
+                <tr>
+                  <td style="padding:12px 0;font-weight:bold;">Name</td>
+                  <td style="padding:12px 0;">${name}</td>
+                </tr>
 
-          <p>${message.replace(/\n/g, "<br>")}</p>
+                <tr>
+                  <td style="padding:12px 0;font-weight:bold;">WhatsApp</td>
+                  <td style="padding:12px 0;">${phone}</td>
+                </tr>
+              </table>
 
-          <hr>
+              <div style="margin-top:25px;">
+                <h3 style="color:#111827;margin-bottom:10px;">Message</h3>
 
-          <small>Sent from your portfolio contact form.</small>
+                <div style="background:#F9FAFB;border-left:4px solid #FF014F;padding:18px;border-radius:8px;color:#374151;">
+                  ${message.replace(/\n/g, "<br>")}
+                </div>
+              </div>
+
+              <div style="margin-top:30px;padding-top:18px;border-top:1px solid #E5E7EB;color:#6B7280;font-size:13px;">
+                This email was sent from your portfolio contact form.
+              </div>
+            </div>
+          </div>
         </div>
       `,
     };
 
     await transporter.sendMail(mailOptions);
 
-    res.json({
+    return res.json({
       success: true,
-      message: "Email sent successfully.",
+      message: "Message sent successfully.",
     });
   } catch (error) {
-    console.error(error);
+    console.error("Mail Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to send email.",
+      message: "Failed to send message.",
     });
   }
 });
 
-app.listen(process.env.PORT || 8080, () => {
-  console.log(`Server running on http://localhost:${process.env.PORT || 8080}`);
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
